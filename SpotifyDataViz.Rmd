@@ -1,0 +1,194 @@
+---
+title: "What's the Vibe?"
+author: "Kole Gray"
+date: "7/31/2021"
+output:
+  pdf_document: default
+  html_document: default
+subtitle: 'An exploraton into my personal listening habits and trends on my most popular
+  playlist: My Current Vibes.'
+---
+# Executive Summary
+
+I absolutely love music. I can't state this enough. I did band throughout middle and high school. Each year for Christmas, I saw the holiday as a chance to amass a collection of instruments and music related technology. I was one of the first people I knew within my friend group and family to get on board with the "digital revolution" that took place in music in the mid 2000's. I had one of the first iPod nano's and over quarantine, last May, I had a custom iPod classic built for myself with a 30,000 mAH battery, a 1Tb ssd, and a custom made matte black face plate and case. Again, I can't state my love for music. 
+
+After graduating High School in the summer of 2011, my world would change forever. A new service was in town and it was called Spotify. It touted itself as this new platform where you could hear any song you could imagine, at any moment you wanted it...for free. The accessibility of this endless stream of music would change my life forever. My initial music discovery method included me just taking a chance at buying a full album from FYE or Best Buy, driving home and praying I liked the whole album. I would then burn the album to my iTunes library and add the songs I liked to my iPod. Wash, rinse, and repeat. 
+
+For the now ten years that have followed, streaming has been such an important aspect of my life. Streaming is how I find new music, how I determine what vinyls are worth bidding on and adding to my collection, and even what new lossless tracks are going on my beast of a custom iPod Classic. Music is one of the most important areas of my life. I figured for this final project, I could analyze the music on my most important playlist: A playlist titled "Current Vibes." For my friends and family along with other followers that follow me on social media, the first Monday of the month is when the updated playlist drops. Everyone digs the playlist for the music I curate, how diverse the tracks are, and everyone especially loves it as a chance for music discovery, both old classics and new drops.
+
+Throughout this project, I'm going to take my July 2021 version of the playlist and analyze the collection of tracks, normally between 25 and 30 each month, to see if there are any insights or patterns or trends in what types of music appeals to me and might end up on my most coveted playlist. 
+
+# Background
+
+## Load Data and Libraries
+
+To access the data about the songs in my playlist, I utilized the web console on the developer site for Spotify and used their API to create a custom GET request to extract the audio analysis for all of the tracks. I exported all of this data as a JSON and then converted it into a CSV using a python script in my terminal. Information about data included in the audio analysis from Spotify can be found on their [API Reference Page](https://developer.spotify.com/documentation/web-api/reference/#endpoint-get-audio-analysis). 
+
+```{r Load Libraries and Data, message=FALSE, warning=FALSE}
+
+library(tidyverse)
+library(lubridate)
+
+options(scipen = 999)
+
+raw_data <- read.csv("data/spotify-api-data.csv")
+
+```
+
+## Cleaning My Data
+
+The exported data had significantly more data than I knew what to do with so I am going to condense this into something a bit more digestible. I think for some cool analysis, I want to look at categories like song duration, release date, tempo, key, the handful of special categories that spotify provides like popularity, liveliness, mode, etc. 
+
+Additionally, I want to reformat some of the column values. I need to ensure that there is the no value in scientific notation. I'm going to extract just the year from the release column. Lastly, I want to rename the columns to more filter friendly names. 
+
+```{r cleaning data, warning=FALSE}
+
+clean_data <- raw_data %>%
+  select(items__track__album__name, items__track__album__artists__name, items__track__album__release_date, items__track__duration_ms, items__track__explicit, items__track__popularity, danceability, energy, key, loudness, mode, speechiness, acousticness, instrumentalness, liveness, valence, tempo) %>%
+  rename(Track = items__track__album__name, Artist = items__track__album__artists__name, Release = items__track__album__release_date, Duration = items__track__duration_ms, Explicit = items__track__explicit, Popularity = items__track__popularity, Danceability = danceability, Energy = energy, Key = key, Loudness = loudness, Mode = mode, Speechiness = speechiness, Acousticness = acousticness, Instrumentalness = instrumentalness, Liveness = liveness, Valence = valence, Tempo = tempo) 
+
+
+clean_data$Release <- year(mdy(clean_data$Release))
+
+clean_data$Duration <- ((clean_data$Duration/1000)/60)
+
+```
+
+# Analysis
+
+To start, I wanted to see what the trends were within my data set in terms of how old or new the songs on my playlist were. I'm going to do this by creating a box plot with the "release" data. For the stylistic approach, I want a very minimal set of plots and I want them to follow the color scheme of Spotify's brand colors. I am going to use the minimal theme from ggplot, along with simple bold titles and axis titles. 
+
+```{r pressure, echo=FALSE, warning=FALSE}
+Release_plot <- clean_data %>%
+  ggplot(aes(x = Release, y = "", fill = Release)) + 
+  geom_boxplot(width = 0.3, fill = "aquamarine3") + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        plot.title = element_text(face = "bold"),
+        axis.line.x = element_line(color = "grey20"),
+        ) + 
+  labs(title = "Distribution of Song Age by its Release Date", 
+       subtitle = "Measuring distribution of how old or new a song is from the playlist",
+       x= "", 
+       y = ""
+       )
+  
+Release_plot
+
+```
+
+The next area I want to analyze is another box plot, but with the duration of the songs. I want to see if there is any trend or relationship with the duration of a song and the likeliness of it appearing on my playlist. I questioned if I needed to include the axis title that explains that this is in minutes, but if this is a song, I feel as if it's understood that duration of a song is measured in time, and more specifically minutes. 
+
+```{r}
+
+Duration_plot <- clean_data %>%
+  ggplot(aes(x = Duration, y = "", fill = Duration)) + 
+  geom_boxplot(width = 0.3, fill = "aquamarine3") + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        plot.title = element_text(face = "bold"),
+        axis.line.x = element_line(color = "grey20"),
+        ) + 
+  labs(title = "Distribution of Songs by their Duration", 
+       subtitle = "Measuring distribution of how long or short a song is from the playlist",
+       x= "", 
+       y = ""
+       )
+
+Duration_plot
+
+```
+
+
+The next variable I want to investigate is popularity. Spotify's API documentation states that popularity is measured on a scale from 1 to 100. A rating of "1" means it's super rare and unpopular while a rating of "100" signifies that this song is probably a very widely known mainstream hit. One aspect I like to hold in high regards with my playlist is the idea that the songs on the list are hopefully a wide mix of songs you've heard and songs that you've haven't heard. I'm going to do one last box plot to see if there is any valuable insight within the popularity of the songs from my playlist. 
+```{r message=FALSE, warning=FALSE}
+Popularity_plot <- clean_data %>%
+  ggplot(aes(x = Popularity, y = "", fill = Popularity)) + 
+  geom_boxplot(width = 0.3, fill = "aquamarine3") + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        axis.line.x = element_line(color = "grey20"),
+        plot.title = element_text(face = "bold")
+        ) + 
+  labs(title = "Distribution of Songs by their Popularity", 
+       subtitle = "Measuring distribution of how popular a song is from the playlist",
+       x= "", 
+       y = ""
+       )
+Popularity_plot
+
+```
+
+```{r message=FALSE, warning=FALSE}
+tempo_liveness <- clean_data %>%
+  ggplot(aes(x = Liveness, y = Tempo)) + 
+  geom_point(size = 2, alpha = .8, color ="aquamarine3")+ 
+  geom_smooth(method=lm, color = "azure4", fill = "azure3")+ 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        axis.line = element_line (color = "grey20"),
+        plot.title = element_text(face = "bold"), 
+        axis.title = element_text(face = "bold")
+        ) + 
+  labs(title = "Liveness & Tempo", 
+       subtitle = "Measuring the relationship of the beat and the groove of songs from the playlist.",
+       x= "Liveness", 
+       y = "Tempo (bpm)"
+       )
+
+tempo_liveness
+
+```
+
+The next relationship I want to visualize is that of the danceability and the energy. I feel like all the songs I have on the playlist are good dance grooves no matter the energy level. Spotify states that the higher the rating for danceability, the more danceable the song is, but I feel like this has cultural biases. 
+
+```{r message=FALSE, warning=FALSE}
+dance_energy <- clean_data %>%
+  ggplot(aes(x = Danceability, y = Energy)) + 
+  geom_point(size = 2, alpha = .8, color ="cyan4")+ 
+  geom_smooth(method=lm, color = "azure4", fill = "azure3")+ 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        axis.line = element_line (color = "grey20"),
+        plot.title = element_text(face = "bold"), 
+        axis.title = element_text(face = "bold")
+        ) + 
+  labs(title = "Danceability & Energy", 
+       subtitle = "Determining if a song's energy also inspires a little movement",
+       x= "Danceability", 
+       y = "Energy"
+       )
+dance_energy
+
+```
+The last area we are going to look at is Speechiness vs Instrumentalness. I listen to music that might be fully instrumental or sometimes a little spoken word get's dropped onto the playlist. What I want to see here is if there is any relationship between song instrumentation and the likliness of the song being word heavy or not. 
+
+```{r message=FALSE, warning=FALSE}
+word_heavy <- clean_data %>%
+  ggplot(aes(x = Speechiness, y = Instrumentalness)) + 
+  geom_point(size = 2, alpha = .8, color ="burlywood2")+ 
+  geom_smooth(method=lm, color = "azure4", fill = "azure3")+ 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        axis.line = element_line (color = "grey20"),
+        plot.title = element_text(face = "bold"), 
+        axis.title = element_text(face = "bold")
+        ) + 
+  labs(title = "Speechiness & Instrumentalness", 
+       subtitle = "Determining if a song's word volume effects it's instrumentation",
+       x= "Speechiness", 
+       y = "Instrumentalness"
+       )
+
+word_heavy
+
+```
+# Final Figure 
+
+For my final figure, I decided to just keep it clean and simple. I listed all three box plots at the top with all three scatter plots at the bottom. I put a brief summary of the project at the top with a brief explanation of the scales used for each plot at the bottom. Additionally, I added a QR code for access to the playlist and put a disclaimer on where the data came from. Additionally, In keeping with my desire for a minimal plot, I used two major font families; GT America and GT America Mono. With the exception of the title, all the elements take up the full width of the page. I left aligned the title, but the page looked "odd" so I decided to center it since it aligns with the middle figures. 
+
+
+![The Final Figure](Final_Project.png)
+
+
+
